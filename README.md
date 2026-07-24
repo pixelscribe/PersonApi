@@ -59,6 +59,29 @@ By default (see `Properties/launchSettings.json`):
 
 The raw OpenAPI document is available at `/openapi/v1.json` in the Development environment (no Swagger UI is configured).
 
+## Testing
+
+```powershell
+dotnet test
+```
+
+`PersonApi.Tests/` contains integration tests that spin up a real, disposable MySQL 8.0 container via [Testcontainers](https://testcontainers.com/) for the run — Docker must be running locally, but no manual database setup or connection string is needed; the test fixture (`PersonApiFactory`) handles that automatically. The suite covers all `/api/person` endpoints, including the `search` endpoint's `FULLTEXT` behavior, which an in-memory/mocked provider can't validate.
+
+## Docker
+
+```powershell
+docker build -t personapi .
+docker run --rm -p 8080:8080 -e ConnectionStrings__Default="Server=...;Database=personapi;User=...;Password=...;" personapi
+```
+
+The container listens on port `8080` with no HTTPS inside it — terminate TLS at a reverse proxy/load balancer in front of it. The app starts successfully even without a reachable database; only requests that actually touch the database fail until `ConnectionStrings__Default` points somewhere valid.
+
+## CI/CD
+
+- **`.github/workflows/ci.yml`** — runs on every pull request and push to `main`: builds, then runs the full test suite (GitHub's hosted Linux runners have Docker preinstalled, so Testcontainers works with no extra setup). Test results are published directly to the PR via `dorny/test-reporter`, not just a pass/fail badge.
+- **`.github/workflows/release.yml`** — runs after a PR merges to `main`. Computes the next version from [Conventional Commits](https://www.conventionalcommits.org/) messages since the last tag (`fix:` → patch, `feat:` → minor, `feat!:`/a `BREAKING CHANGE:` footer → major), then pushes a git tag and creates a GitHub Release — each one an immutable snapshot of that commit.
+- `main` is protected by a branch ruleset: changes must go through a PR, and the `test` check from `ci.yml` must pass before merging. Self-approval is currently allowed (no required review count).
+
 ## API Reference
 
 Base route: `/api/person`
