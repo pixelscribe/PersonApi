@@ -52,4 +52,4 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.DEPLOY_PAT }}
     steps:
-      - run: gh workflow run deploy-webservice.yml --repo pixelscribe/live-terraform -f image_tag=${{ needs.tag.outputs.new_tag }}
+      - run: gh workflow run plan-webservice.yml --repo pixelscribe/live-terraform -f image_tag=${{ needs.tag.outputs.new_tag }}
