@@ -23,7 +23,7 @@ jobs:
 
       - run: dotnet build --no-restore
 
-      - run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
+      - run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults --collect:"XPlat Code Coverage"
 
       - uses: dorny/test-reporter@v3
         if: always()
@@ -32,3 +32,22 @@ jobs:
           path: TestResults/*.trx
           reporter: dotnet-trx
           fail-on-error: true
+
+      - name: Generate code coverage report
+        if: always()
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.4.6
+        with:
+          reports: TestResults/**/coverage.cobertura.xml
+          targetdir: CoverageReport
+          reporttypes: Html;MarkdownSummaryGithub
+
+      - name: Upload code coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: CoverageReport
+
+      - name: Add coverage summary
+        if: always()
+        run: cat CoverageReport/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
